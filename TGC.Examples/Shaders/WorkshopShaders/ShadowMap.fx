@@ -25,7 +25,8 @@ sampler2D diffuseMap = sampler_state
 };
 
 #define SMAP_SIZE 1024
-#define EPSILON 0.05f
+#define EPSILON 0.0f
+//0.008f
 
 float time = 0;
 

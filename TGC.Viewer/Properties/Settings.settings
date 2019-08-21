@@ -6,7 +6,7 @@
       <Value Profile="(Default)">..\..\..\TGC.Examples\Shaders\</Value>
     </Setting>
     <Setting Name="MediaDirectory" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Media\</Value>
+      <Value Profile="(Default)">..\..\..\..\Media\</Value>
     </Setting>
     <Setting Name="DefaultExampleCategory" Type="System.String" Scope="User">
       <Value Profile="(Default)">Others</Value>

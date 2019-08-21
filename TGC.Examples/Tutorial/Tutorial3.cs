@@ -1,6 +1,7 @@
 ﻿using Microsoft.DirectX.DirectInput;
 using System.Windows.Forms;
 using TGC.Core.Collision;
+using TGC.Core.Direct3D;
 using TGC.Core.Mathematica;
 using TGC.Core.SceneLoader;
 using TGC.Examples.Camara;
@@ -20,11 +21,17 @@ namespace TGC.Examples.Tutorial
     public class Tutorial3 : TGCExampleViewer
     {
         private const float MOVEMENT_SPEED = 200f;
-        private TgcThirdPersonCamera camaraInterna;
+        private MyTgcThirdPersonCamera camaraInterna;
         private TgcMesh mainMesh;
         private TgcScene scene;
+        public float ZFarPlaneDistance { get; set; } = 10000f;
+        public float ZNearPlaneDistance { get; set; } = 1f;
+        public float ang { get; private set; } = 45f;
+        public TGCVector3 Posoffset { get; private set; } = new TGCVector3(0,205,300);
+        public TGCVector3 Centeroffset { get; private set; } = TGCVector3.Empty;
+        
 
-        public Tutorial3(string mediaDir, string shadersDir, TgcUserVars userVars, Panel modifiersPanel)
+    public Tutorial3(string mediaDir, string shadersDir, TgcUserVars userVars, Panel modifiersPanel)
             : base(mediaDir, shadersDir, userVars, modifiersPanel)
         {
             Category = "Tutorial";
@@ -47,9 +54,13 @@ namespace TGC.Examples.Tutorial
             mainMesh.AutoTransform = true;
             //Movemos el mesh un poco para arriba. Porque sino choca con el piso todo el tiempo y no se puede mover.
             mainMesh.Move(0, 5, 0);
-
-            //Vamos a utilizar la camara en 3ra persona para que siga al objeto principal a medida que se mueve
-            camaraInterna = new TgcThirdPersonCamera(mainMesh.Position, 200, 300);
+            mainMesh.BoundingBox = mainMesh.createBoundingBox();
+            foreach (var mesh in scene.Meshes)
+            {
+                mesh.BoundingBox = mesh.createBoundingBox();
+            }
+                //Vamos a utilizar la camara en 3ra persona para que siga al objeto principal a medida que se mueve
+                camaraInterna = new MyTgcThirdPersonCamera(mainMesh.Position, 200, 300);
             Camara = camaraInterna;
         }
 
@@ -66,31 +77,88 @@ namespace TGC.Examples.Tutorial
             var movement = TGCVector3.Empty;
 
             //Movernos de izquierda a derecha, sobre el eje X.
-            if (input.keyDown(Key.Left) || input.keyDown(Key.A))
+            if (input.keyDown(Key.Left))
             {
                 movement.X = 1;
             }
-            else if (input.keyDown(Key.Right) || input.keyDown(Key.D))
+            else if (input.keyDown(Key.Right))
             {
                 movement.X = -1;
             }
 
             //Movernos adelante y atras, sobre el eje Z.
-            if (input.keyDown(Key.Up) || input.keyDown(Key.W))
+            if (input.keyDown(Key.Up))
             {
                 movement.Z = -1;
             }
-            else if (input.keyDown(Key.Down) || input.keyDown(Key.S))
+            else if (input.keyDown(Key.Down))
             {
                 movement.Z = 1;
+            }
+
+            if (input.keyDown(Key.Left))
+            {
+                movement.X = 1;
+            }
+            else if (input.keyDown(Key.Right))
+            {
+                movement.X = -1;
+            }
+
+            var otroMovement = TGCVector3.Empty;
+
+            //Movernos adelante y atras, sobre el eje Z.
+            if (input.keyDown(Key.W))
+            {
+                otroMovement.Z = -1;
+            }
+            else if (input.keyDown(Key.S))
+            {
+                otroMovement.Z = 1;
+            }
+            if (input.keyDown(Key.A))
+            {
+                otroMovement.X = 1;
+            }
+            else if (input.keyDown(Key.D))
+            {
+                otroMovement.X = -1;
+            }
+
+            if (input.keyDown(Key.D1))
+            {
+                ang += -1f;
+            }
+            else if (input.keyDown(Key.D2))
+            {
+                ang += 1f;
+            }
+
+            if (input.keyDown(Key.D3))
+            {
+                ZNearPlaneDistance += -1f;
+            }
+            else if (input.keyDown(Key.D4))
+            {
+                ZNearPlaneDistance += 1f;
+            }
+
+            if (input.keyDown(Key.D5))
+            {
+                ZFarPlaneDistance += -10f;
+            }
+            else if (input.keyDown(Key.D6))
+            {
+                ZFarPlaneDistance += 10f;
             }
 
             //Guardar posicion original antes de cambiarla
             var originalPos = mainMesh.Position;
 
             //Multiplicar movimiento por velocidad y elapsedTime
-            movement *= MOVEMENT_SPEED * ElapsedTime;
-            mainMesh.Move(movement);
+            //movement *= MOVEMENT_SPEED * ElapsedTime;
+            //if (mainMesh.Position.Z > -1000f && movement.Z!=-1)
+            //    mainMesh.Move(movement);
 
             //Chequear si el objeto principal en su nueva posición choca con alguno de los objetos de la escena.
             //Si es así, entonces volvemos a la posición original.
@@ -127,7 +195,19 @@ namespace TGC.Examples.Tutorial
             //Hacer que la camara en 3ra persona se ajuste a la nueva posicion del objeto
             camaraInterna.Target = mainMesh.Position;
 
+            //camaraInterna.addPos(movement);
+            //camaraInterna.addCenter(otroMovement);
             PostUpdate();
+
+            //Frustum values
+            D3DDevice.Instance.Device.Transform.Projection = TGCMatrix.PerspectiveFovLH(FastMath.ToRad(ang),
+                D3DDevice.Instance.AspectRatio,
+                ZNearPlaneDistance,
+                ZFarPlaneDistance).ToMatrix();
+            
+            Posoffset += movement;
+            Centeroffset += otroMovement;
+            D3DDevice.Instance.Device.Transform.View = TGCMatrix.LookAtLH(Posoffset, Centeroffset,TGCVector3.Up).ToMatrix();
         }
 
         public override void Render()
